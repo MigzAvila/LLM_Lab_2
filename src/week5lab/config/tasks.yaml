@@ -1,0 +1,88 @@
+prediction_research_task:
+  description: >
+    Target pair: user_id={user_id}, item_id={item_id}.
+
+    Use crew knowledge (including the supplementary column/schema notes) to interpret
+    fields: treat user average_stars as this reviewer’s baseline strictness; treat
+    business stars and review_count as population quality/popularity; treat per-review
+    stars plus useful/funny/cool as reliability hints when comparing snippets.
+
+    Strategy (execute, do not skip for brevity):
+    1) search_user_profile_data — query with user_id; capture review_count,
+       average_stars, elite, and any fields that indicate activity or taste.
+    2) search_restaurant_feature_data — query with item_id; capture name, city,
+       state, categories, attributes, business stars, review_count, is_open.
+    3) search_historical_reviews_data — at minimum: queries containing user_id
+       (pull several of this user’s past reviews and their stars); queries containing
+       item_id (other patrons’ stars and themes); 2–4 theme queries (food, service,
+       wait, value, noise, parking) using words from categories/attributes; if
+       categories are clear, one query blending user_id with a top category keyword
+       to surface how this user rates similar venues.
+
+    Synthesize in Markdown with exactly these sections (use the headings):
+    ## Numeric anchors for calibration
+    Bullet lines only: user average_stars and review_count; business stars and
+    review_count; short summary of star values seen for this user in retrieved
+    reviews (e.g. min / max / rough central tendency if ≥3 samples); same for
+    this business from retrieved reviews. If any anchor is missing, say "unknown"
+    and why.
+    ## User profile snapshot
+    ## Business snapshot
+    ## Relevant review evidence (paraphrase; note star patterns and outliers)
+    ## User–business fit (match, tension, or unknown)
+    ## Contradictions or weak evidence
+    ## Open questions / uncertainty
+
+    Rules: Do not output a final star rating or mock review here. Do not cite or
+    use data/test_review_subset.json or any held-out test file. RAG corpora only:
+    user_subset, item_subset, review_subset.
+  expected_output: >
+    A dense Markdown evidence brief (all six sections) that a careful analyst
+    could use without calling tools again; includes explicit uncertainty where
+    retrieval was thin.
+  agent: prediction_researcher
+
+prediction_report_task:
+  description: >
+    Inputs: the completed research brief from the previous task (your only source
+    of facts). Target: user_id={user_id}, item_id={item_id}.
+
+    Produce exactly one JSON object matching ReviewPredictionOutput:
+    - "stars": float in [1.0, 5.0], half-steps (e.g. 3.5) allowed when justified.
+    - "review": string, first-person Yelp-style, 3–8 sentences unless the brief
+      forces shorter due to missing detail.
+
+    Calibration rubric (apply in order; use the "## Numeric anchors" section first):
+    1) Start from the numbers in the brief: user average_stars and business stars are
+       priors. A reasonable default is to stay within about one star of the user’s
+       average unless the brief gives strong, specific reasons (clear praise or
+       repeated complaints aligned with retrieved themes) to move further; do not
+       jump to 4.5+ or ≤2.0 without explicit supporting themes from the brief.
+    2) Adjust using this user’s retrieved review stars (if listed): if they often
+       give 3s to places like this category, a 4.5 here needs strong positive
+       evidence; if they are generally generous, do not predict a harsh 2 without
+       strong negative evidence.
+    3) Reflect business strengths and pain points actually mentioned for this
+       item_id; name the business type (from the brief), not a generic “restaurant”
+       or “coffee shop” if the brief says otherwise.
+    4) If evidence conflicts or anchors are partly unknown, use a conservative
+       mid-range prediction and hedge in prose—still consistent with user
+       average_stars when that anchor is known.
+
+    Voice: mirror tone implied by the brief (harsh vs enthusiastic), not a generic
+    template. The review must not reuse boilerplate phrasing that could apply to any
+    business; tie claims to details from the brief.
+
+    Hard constraints: No markdown fences. No keys other than "stars" and "review".
+    No invented tool calls, visits, or facts not supported by the brief.
+
+    Output discipline (critical): Your message must be one JSON object only—nothing
+    before the opening "{" and nothing after the closing "}". Do not print the same
+    JSON twice, do not add summaries, labels, or "Here is the result:".
+  expected_output: >
+    A single JSON object with exactly keys "stars" and "review", valid for the
+    structured output schema (raw JSON only, no markdown).
+  agent: prediction_reporting_analyst
+  context:
+    - prediction_research_task
+  output_file: prediction_output.json
