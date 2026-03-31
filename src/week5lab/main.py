@@ -167,7 +167,6 @@ def run():
         → full subset (all rows); long-running; writes test_eval_summary.json
     """
     cli_arg = sys.argv[1].strip() if len(sys.argv) >= 2 else ""
-    print("TESTING", cli_arg)
     
     if not cli_arg:
         raise Exception(
@@ -281,7 +280,6 @@ def run_with_trigger():
 
 def crewai_entry() -> None:
     av = sys.argv
-    print("TESTONG", av)
     # Intercept BEFORE Click
     if len(av) >= 2 and av[1] == "run":
         # Remove "run" so Click doesn't process it

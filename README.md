@@ -14,6 +14,12 @@ pip install uv
 
 Next, navigate to your project directory and install the dependencies:
 
+Install LiteLLM proxy extras:
+
+```bash
+uv pip install 'litellm[proxy]'
+```
+
 (Optional) Lock the dependencies and install them by using the CLI command:
 ```bash
 crewai install
@@ -51,10 +57,10 @@ uv run run_crew 11
 uv run test_eval
 ```
 
-Outputs:
+Outputs (generated files):
 
-- Single runs append to `prediction_outputs.json` and overwrite `prediction_output.json` for the last task output.
-- Full eval also writes `test_eval_summary.json` and resets/rebuilds the batch in `prediction_outputs.json` as implemented in `main.py`.
+- `prediction_output.json` is the holder for the current prediction target output (the latest run only: predicted `stars` and `review`).
+- `prediction_outputs.json` stores the full run records you want to track (e.g., `user_id`, `item_id`, `actual_stars`, and your predicted output).
 
 **Optional:** pass explicit IDs as JSON instead of a line number:
 

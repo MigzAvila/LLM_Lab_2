@@ -1,20 +1,11 @@
 [
   {
-    "user_id": "Um5bfs5DH6eizgjH3xZsvg",
-    "item_id": "cx5rIVMN-FXwBkl2Kbot7w",
-    "actual_stars": 5.0,
-    "predicted": {
-      "stars": 3.5,
-      "review": "I've been to this place a few times, and I have mixed feelings about it. The food is okay, but the prices are a bit steep for what you get. I've had some good experiences with the service, but others have left me feeling a bit disappointed. Overall, I'd say it's an average spot, worth trying if you're in the area but not necessarily going out of your way for."
-    }
-  },
-  {
-    "user_id": "dvu83QWKsnnbGvNVQ3mv7A",
-    "item_id": "0z-pNv_92L_-LiYV_XlcSw",
+    "user_id": "_BcWyKQL16ndpBdggh2kNA",
+    "item_id": "uBDXcXlLR9IuRV1N2m0SPQ",
     "actual_stars": 4.0,
     "predicted": {
-      "stars": 3.5,
-      "review": "I'm a fan of local eateries, and this place does not disappoint! As an Elite since '16, I've had my fair share of great eats in the city. This restaurant's Italian offerings are top-notch, with generous portions that'll leave you feeling satisfied without breaking the bank. However, be aware that it can get quite crowded during peak hours. Overall, a solid choice for those looking for authentic flavors without the hefty price tag."
+      "stars": 3.0,
+      "review": "I recently visited the Italian restaurant on Main St, where I have been multiple times before. Although it was not my favorite experience this time around, I still enjoyed the pasta dishes and service. The atmosphere is cozy and inviting, which helps to make up for any minor issues with food quality or preparation. Overall, it's a solid option for Italian cuisine in the area."
     }
   }
 ]
