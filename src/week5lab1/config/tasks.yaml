@@ -8,8 +8,12 @@
 #    sequential Process in ``crew.py``: ``predict_review_task`` implicitly
 #    receives the outputs of the two analyze tasks.
 #
-# 2. "Collaborative single task" (``collab_predict_task``) — Pattern 2 from
-#    the lecture. One task, all specialists can delegate between each other.
+# 2. Collaborative specialists — the collab crew also reuses the family (1)
+#    task lineup under ``Process.sequential``. Pattern 2 "collaboration"
+#    comes from ``allow_delegation=True`` on every agent (plus the extra
+#    eda_researcher / web_researcher peers), not from squeezing the whole
+#    workflow into a single task. Keeping three tasks guarantees the final
+#    answer is a clean JSON from ``prediction_modeler``.
 #
 # 3. Hierarchical orchestration — the hierarchical crew reuses the same
 #    three tasks from family (1) under ``Process.hierarchical`` with an
@@ -70,46 +74,15 @@ predict_review_task:
   agent: prediction_modeler
 
 # -----------------------------------------------------------------------
-# Pattern 2 — Collaborative single task (sequential process, one task)
+# Pattern 2 — Collaborative specialists (sequential process, shared tasks)
 # -----------------------------------------------------------------------
 #
-# The writer (prediction_modeler) leads, but with ``allow_delegation=true``
-# on every agent it can ask the user_analyst, item_analyst, eda_researcher
-# (and web_researcher if configured) for whatever evidence it needs before
-# producing the final JSON.
-
-collab_predict_task:
-  description: >
-    Produce a single ReviewPredictionOutput for (user_id={user_id},
-    item_id={item_id}). You lead this task, but you are expected to
-    collaborate: delegate focused questions to your teammates so the final
-    answer is grounded.
-
-    The output must include:
-      - A calibrated ``stars`` float in [1.0, 5.0]
-      - A first-person ``review`` string that sounds like this user
-
-    Recommended collaboration plan:
-      1. Ask the user_analyst to characterize user {user_id}'s rating habits
-         and tone using search_user_profile_data and
-         search_historical_reviews_data.
-      2. Ask the item_analyst to characterize business {item_id} using
-         search_restaurant_feature_data and search_historical_reviews_data.
-      3. Ask the eda_researcher for a short "EDA anchors" list: user
-         average_stars vs their retrieved per-review stars, and the item's
-         aggregate stars vs its retrieved reviews.
-      4. (Optional) Ask the web_researcher only if there is a genuine gap
-         the Yelp corpora cannot fill.
-      5. Synthesise everything yourself and emit ONE JSON object.
-
-    Never delegate the final prediction itself. You own the stars and the
-    review text.
-  expected_output: >
-    Output ONLY a valid JSON object with exactly two keys: "stars" (a float
-    from 1.0 to 5.0) and "review" (a string). Use single curly braces.
-    Example: {"stars": 4.5, "review": "The review text..."}
-    Do NOT include any text before or after the JSON object.
-  agent: prediction_modeler
+# The collab crew reuses the Pattern 1 task lineup verbatim. Collaboration
+# still happens via ``allow_delegation=true`` on every agent (see
+# config/agents.yaml) — an analyst can pause mid-task to ask a peer a
+# focused question — but the final answer is still produced by
+# ``prediction_modeler`` at the end of ``predict_review_task`` so the
+# output schema stays identical across all three crew modes.
 
 # -----------------------------------------------------------------------
 # Pattern 3 — Hierarchical (manager agent orchestrates the same 3 tasks)

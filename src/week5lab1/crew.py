@@ -326,7 +326,27 @@ class Week5Lab1:
 
 @CrewBase
 class Week5Lab1CollabCrew:
-    """Pattern 2: one collaborative task; peers delegate to each other."""
+    """Pattern 2: collaborative specialists under ``Process.sequential``.
+
+    Mirrors the sequential crew's three-task lineup
+    (``analyze_user_task`` -> ``analyze_item_task`` -> ``predict_review_task``)
+    so the final output is emitted by ``prediction_modeler`` — same clean
+    JSON schema as the sequential and hierarchical crews. The
+    "collaborative" flavour of Pattern 2 is still there because every agent
+    (including the extra ``eda_researcher`` / ``web_researcher``) has
+    ``allow_delegation=True`` in :file:`config/agents.yaml`, so an analyst
+    can still ask a peer a focused question mid-task via CrewAI's built-in
+    delegation tools.
+
+    Why not a single-task setup? When the single-task owner has no direct
+    tools, it is forced onto the delegation meta-tools ("Delegate work to
+    coworker" / "Ask question to coworker"). The NVIDIA MiniMax NIM emits
+    those as its native ``<minimax:tool_call>`` XML, which LiteLLM does
+    not translate — the XML leaks into the final output and the
+    prediction is lost. Pinning each step to a specialist with its own
+    RAG tools routes tool calls through the OpenAI-style function-call
+    path, which MiniMax handles correctly.
+    """
 
     agents: List[BaseAgent]
     tasks: List[Task]
@@ -376,10 +396,23 @@ class Week5Lab1CollabCrew:
             verbose=True,
         )
 
+    # Reuse the sequential task lineup so the final output is emitted by
+    # ``prediction_modeler`` via the reliable OpenAI-style tool-call path.
+    # Peer collaboration still happens mid-task via ``allow_delegation=True``
+    # on the agents in :file:`config/agents.yaml`.
+
     @task
-    def collab_predict_task(self) -> Task:
+    def analyze_user_task(self) -> Task:
+        return Task(config=self.tasks_config["analyze_user_task"])  # type: ignore[index]
+
+    @task
+    def analyze_item_task(self) -> Task:
+        return Task(config=self.tasks_config["analyze_item_task"])  # type: ignore[index]
+
+    @task
+    def predict_review_task(self) -> Task:
         return Task(
-            config=self.tasks_config["collab_predict_task"],  # type: ignore[index]
+            config=self.tasks_config["predict_review_task"],  # type: ignore[index]
             output_file="prediction_output.json",
         )
 
