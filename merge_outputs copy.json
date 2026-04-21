@@ -1,0 +1,17 @@
+[
+  {
+    "user_id": "_BcWyKQL16ndpBdggh2kNA",
+    "item_id": "uBDXcXlLR9IuRV1N2m0SPQ",
+    "crew_mode": "sequential",
+    "ground_truth": {
+      "stars": 4.0,
+      "review": "Pho, summer rolls, iced coffee, vermicelli, broken rice plates, all the staples in a quick-service format. Mid-priced and great for lunch. Come right when they open at 11:30 to beat the lunch rush.\n\nNew digs with a clean restroom. For now.",
+      "review_id": "aLEAgsn-AHHGHoOmSk3l-A",
+      "date": "2019-07-25 23:10:04"
+    },
+    "predicted": {
+      "stars": 4.5,
+      "review": "Another solid choice that delivers on what matters most. The atmosphere has a great vibe that makes you want to linger, and the ingredients are clearly fresh and high quality. Service was friendly and attentive throughout the meal, and the portions are generous for the price point. Definitely recommend giving this place a try — it's the kind of dependable spot you keep coming back to."
+    }
+  }
+]
