@@ -283,6 +283,23 @@ class Week5Lab1:
         )
 
     @agent
+    def prediction_researcher(self) -> Agent:
+        return Agent(
+            config=self.agents_config["prediction_researcher"],  # type: ignore[index]
+            tools=[user_rag_tool, item_rag_tool, review_rag_tool],
+            llm=CREW_LLM,
+            verbose=True,
+        )
+
+    @agent
+    def prediction_reporting_analyst(self) -> Agent:
+        return Agent(
+            config=self.agents_config["prediction_reporting_analyst"],  # type: ignore[index]
+            llm=CREW_LLM,
+            verbose=True,
+        )
+
+    @agent
     def prediction_modeler(self) -> Agent:
         return Agent(
             config=self.agents_config["prediction_modeler"],  # type: ignore[index]
@@ -302,6 +319,17 @@ class Week5Lab1:
     def predict_review_task(self) -> Task:
         return Task(
             config=self.tasks_config["predict_review_task"],  # type: ignore[index]
+            output_file="prediction_output.json",
+        )
+
+    @task
+    def prediction_research_task(self) -> Task:
+        return Task(config=self.tasks_config["prediction_research_task"])  # type: ignore[index]
+
+    @task
+    def prediction_report_task(self) -> Task:
+        return Task(
+            config=self.tasks_config["prediction_report_task"],  # type: ignore[index]
             output_file="prediction_output.json",
         )
 
@@ -370,6 +398,23 @@ class Week5Lab1CollabCrew:
         )
 
     @agent
+    def prediction_researcher(self) -> Agent:
+        return Agent(
+            config=self.agents_config["prediction_researcher"],  # type: ignore[index]
+            tools=[user_rag_tool, item_rag_tool, review_rag_tool],
+            llm=CREW_LLM,
+            verbose=True,
+        )
+
+    @agent
+    def prediction_reporting_analyst(self) -> Agent:
+        return Agent(
+            config=self.agents_config["prediction_reporting_analyst"],  # type: ignore[index]
+            llm=CREW_LLM,
+            verbose=True,
+        )
+
+    @agent
     def eda_researcher(self) -> Agent:
         return Agent(
             config=self.agents_config["eda_researcher"],  # type: ignore[index]
@@ -416,6 +461,17 @@ class Week5Lab1CollabCrew:
             output_file="prediction_output.json",
         )
 
+    @task
+    def prediction_research_task(self) -> Task:
+        return Task(config=self.tasks_config["prediction_research_task"])  # type: ignore[index]
+
+    @task
+    def prediction_report_task(self) -> Task:
+        return Task(
+            config=self.tasks_config["prediction_report_task"],  # type: ignore[index]
+            output_file="prediction_output.json",
+        )
+
     @crew
     def crew(self) -> Crew:
         return Crew(
@@ -459,6 +515,23 @@ class Week5Lab1HierarchicalCrew:
         return Agent(
             config=self.agents_config["item_analyst"],  # type: ignore[index]
             tools=[item_rag_tool, review_rag_tool],
+            llm=CREW_LLM,
+            verbose=True,
+        )
+
+    @agent
+    def prediction_researcher(self) -> Agent:
+        return Agent(
+            config=self.agents_config["prediction_researcher"],  # type: ignore[index]
+            tools=[user_rag_tool, item_rag_tool, review_rag_tool],
+            llm=CREW_LLM,
+            verbose=True,
+        )
+
+    @agent
+    def prediction_reporting_analyst(self) -> Agent:
+        return Agent(
+            config=self.agents_config["prediction_reporting_analyst"],  # type: ignore[index]
             llm=CREW_LLM,
             verbose=True,
         )
@@ -518,6 +591,17 @@ class Week5Lab1HierarchicalCrew:
     def predict_review_task(self) -> Task:
         return Task(
             config=self.tasks_config["predict_review_task"],  # type: ignore[index]
+            output_file="prediction_output.json",
+        )
+
+    @task
+    def prediction_research_task(self) -> Task:
+        return Task(config=self.tasks_config["prediction_research_task"])  # type: ignore[index]
+
+    @task
+    def prediction_report_task(self) -> Task:
+        return Task(
+            config=self.tasks_config["prediction_report_task"],  # type: ignore[index]
             output_file="prediction_output.json",
         )
 

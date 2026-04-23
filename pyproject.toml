@@ -22,6 +22,7 @@ train = "week5lab1.main:train"
 replay = "week5lab1.main:replay"
 test = "week5lab1.main:test"
 run_with_trigger = "week5lab1.main:run_with_trigger"
+run_flow = "week5lab1.flow:run_flow"
 benchmark_indexing = "week5lab1.benchmark_indexing:run_indexing_benchmark"
 benchmark_rag = "week5lab1.benchmark_rag:run_benchmark"
 

@@ -8,6 +8,16 @@ target business, so our EDA is focused on **rating calibration** and
 This knowledge source tells every agent in the crew what "EDA anchors" to
 compute and how to use them.
 
+Important scope rule:
+
+- This document is methodology only. It does not contain ground-truth facts
+  for any specific `user_id` or `item_id`.
+- Agents must never copy or invent concrete business names, dishes, cities,
+  or events from generic examples in knowledge docs.
+- Factual details used in final prediction must come only from retrieved
+  evidence (`user_subset`, `item_subset`, `review_subset`) for the current
+  target pair.
+
 ---
 
 ## 1. Why EDA matters here
@@ -110,3 +120,9 @@ The final crew output is always a single JSON object:
 - `review` is a first-person string (2-6 sentences) that sounds like the
   target user and is consistent with the EDA anchors above.
 - No markdown, no preamble, no trailing commentary.
+
+Identity lock reminder:
+
+- The final review must be about the business tied to `item_id` in retrieval.
+- If business identity is uncertain, the agent should avoid naming a business
+  rather than invent one.

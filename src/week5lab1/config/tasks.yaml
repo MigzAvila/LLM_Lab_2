@@ -1,97 +1,168 @@
-# Strictly separated task definitions.
-#
-# Three task families live here:
-#
-# 1. "Research -> Write -> Edit" style decomposition (analyze_user_task ->
-#    analyze_item_task -> predict_review_task). Used by the default
-#    ``Week5Lab1`` sequential crew. Context chaining happens via the
-#    sequential Process in ``crew.py``: ``predict_review_task`` implicitly
-#    receives the outputs of the two analyze tasks.
-#
-# 2. Collaborative specialists — the collab crew also reuses the family (1)
-#    task lineup under ``Process.sequential``. Pattern 2 "collaboration"
-#    comes from ``allow_delegation=True`` on every agent (plus the extra
-#    eda_researcher / web_researcher peers), not from squeezing the whole
-#    workflow into a single task. Keeping three tasks guarantees the final
-#    answer is a clean JSON from ``prediction_modeler``.
-#
-# 3. Hierarchical orchestration — the hierarchical crew reuses the same
-#    three tasks from family (1) under ``Process.hierarchical`` with an
-#    explicit ``crew_manager`` agent. This keeps the final output identical
-#    in shape to the sequential crew (emitted by ``prediction_modeler``)
-#    while still letting the manager side-delegate to eda_researcher /
-#    editor / web_researcher via CrewAI's built-in delegation tools.
+prediction_research_task:
+  description: >
+    Target pair: user_id={user_id}, item_id={item_id}.
 
-# -----------------------------------------------------------------------
-# Pattern 1 — Research -> Write -> Edit (sequential, explicit context)
-# -----------------------------------------------------------------------
+    Use crew knowledge (including the supplementary column/schema notes) to interpret
+    fields: treat user average_stars as this reviewer’s baseline strictness; treat
+    business stars and review_count as population quality/popularity; treat per-review
+    stars plus useful/funny/cool as reliability hints when comparing snippets.
+
+    Strategy (execute, do not skip for brevity):
+    1) search_user_profile_data — query with user_id; capture review_count,
+       average_stars, elite, and any fields that indicate activity or taste.
+    2) search_restaurant_feature_data — query with item_id; capture name, city,
+       state, categories, attributes, business stars, review_count, is_open.
+    3) search_historical_reviews_data — at minimum: queries containing user_id
+       (pull several of this user’s past reviews and their stars); queries containing
+       item_id (other patrons’ stars and themes); 2–4 theme queries (food, service,
+       wait, value, noise, parking) using words from categories/attributes; if
+       categories are clear, one query blending user_id with a top category keyword
+       to surface how this user rates similar venues.
+
+    Synthesize in Markdown with exactly these sections (use the headings):
+    ## Numeric anchors for calibration
+    Bullet lines only: user average_stars and review_count; business stars and
+    review_count; short summary of star values seen for this user in retrieved
+    reviews (e.g. min / max / rough central tendency if ≥3 samples); same for
+    this business from retrieved reviews. If any anchor is missing, say "unknown"
+    and why.
+    ## User profile snapshot
+    ## Business snapshot
+    ## Relevant review evidence (paraphrase; note star patterns and outliers)
+    ## User–business fit (match, tension, or unknown)
+    ## Contradictions or weak evidence
+    ## Open questions / uncertainty
+
+    Rules: Do not output a final star rating or mock review here. Do not cite or
+    use data/test_review_subset.json or any held-out test file. RAG corpora only:
+    user_subset, item_subset, review_subset.
+  expected_output: >
+    A dense Markdown evidence brief (all six sections) that a careful analyst
+    could use without calling tools again; includes explicit uncertainty where
+    retrieval was thin.
+  agent: prediction_researcher
+
+prediction_report_task:
+  description: >
+    Inputs: the completed research brief from the previous task (your only source
+    of facts). Target: user_id={user_id}, item_id={item_id}.
+
+    Produce exactly one JSON object matching ReviewPredictionOutput:
+    - "stars": float in [1.0, 5.0], half-steps (e.g. 3.5) allowed when justified.
+    - "review": string, first-person Yelp-style, 3–8 sentences unless the brief
+      forces shorter due to missing detail.
+
+    Calibration rubric (apply in order; use the "## Numeric anchors" section first):
+    1) Start from the numbers in the brief: user average_stars and business stars are
+       priors. A reasonable default is to stay within about one star of the user’s
+       average unless the brief gives strong, specific reasons (clear praise or
+       repeated complaints aligned with retrieved themes) to move further; do not
+       jump to 4.5+ or ≤2.0 without explicit supporting themes from the brief.
+    2) Adjust using this user’s retrieved review stars (if listed): if they often
+       give 3s to places like this category, a 4.5 here needs strong positive
+       evidence; if they are generally generous, do not predict a harsh 2 without
+       strong negative evidence.
+    3) Reflect business strengths and pain points actually mentioned for this
+       item_id; name the business type (from the brief), not a generic “restaurant”
+       or “coffee shop” if the brief says otherwise.
+    4) If evidence conflicts or anchors are partly unknown, use a conservative
+       mid-range prediction and hedge in prose—still consistent with user
+       average_stars when that anchor is known.
+
+    Voice: mirror tone implied by the brief (harsh vs enthusiastic), not a generic
+    template. The review must not reuse boilerplate phrasing that could apply to any
+    business; tie claims to details from the brief.
+
+    Hard constraints: No markdown fences. No keys other than "stars" and "review".
+    No invented tool calls, visits, or facts not supported by the brief.
+
+    Output discipline (critical): Your message must be one JSON object only—nothing
+    before the opening "{" and nothing after the closing "}". Do not print the same
+    JSON twice, do not add summaries, labels, or "Here is the result:".
+  expected_output: >
+    A single JSON object with exactly keys "stars" and "review", valid for the
+    structured output schema (raw JSON only, no markdown).
+  agent: prediction_reporting_analyst
+  context:
+    - prediction_research_task
+  output_file: prediction_output.json
 
 analyze_user_task:
   description: >
-    Use the search_user_profile_data tool to find information about user {user_id}.
-    You MUST call the tool with a natural language search_query string, e.g.:
-    Action: search_user_profile_data
-    Action Input: {{"search_query": "What are the review habits and average stars for user {user_id}"}}
-    Also use search_historical_reviews_data to find past reviews written by this user.
-    Understand their average stars, what words they commonly use, and their general sentiment.
-    If a concept is unclear, you may delegate a focused question to the
-    eda_researcher for a distribution anchor.
+    Build a grounded profile for user_id={user_id} using search_user_profile_data
+    and search_historical_reviews_data. Use natural-language search_query inputs.
+
+    Minimum retrieval plan (do not skip):
+    1) One query centered on user_id to fetch profile anchors (average_stars, review_count).
+    2) At least 3 review-history queries for this user (broad + theme-based).
+    3) Record concrete evidence snippets (paraphrase only) and associated star patterns.
+
+    Required output sections:
+    - User numeric anchors
+    - Rating behavior pattern (harsh/generous + variance)
+    - Top liked themes
+    - Top disliked themes
+    - Voice/tone cues for first-person review writing
+    - Uncertainty / missing evidence
   expected_output: >
-    A detailed markdown profile of user {user_id}'s preferences and rating habits,
-    including: average_stars, review_count, 3-5 recurring themes (with
-    short paraphrased quotes), and a one-line tone descriptor.
+    A markdown user profile with numeric anchors and evidence-backed behavior
+    cues suitable for final calibration.
   agent: user_analyst
 
 analyze_item_task:
   description: >
-    Use the search_restaurant_feature_data tool to find information about business {item_id}.
-    You MUST call the tool with a natural language search_query string, e.g.:
-    Action: search_restaurant_feature_data
-    Action Input: {{"search_query": "What are the categories and star rating for business {item_id}"}}
-    Also use search_historical_reviews_data to find past reviews about this business.
-    Understand its categories, attributes, and overall public sentiment.
+    Build a grounded profile for item_id={item_id} using search_restaurant_feature_data
+    and search_historical_reviews_data. Use natural-language search_query inputs.
+
+    Minimum retrieval plan (do not skip):
+    1) One item_id query for identity anchors: exact business name, city/state,
+       categories, aggregate stars, review_count.
+    2) At least 3 historical-review queries for the same item_id, including
+       both positive and negative evidence when available.
+    3) Explicitly separate stable strengths vs recurring complaints.
+
+    Required output sections:
+    - Business identity anchors (must include exact name from retrieval)
+    - Numeric anchors (aggregate stars/review_count + review-star pattern seen)
+    - Strongest positives with evidence
+    - Strongest negatives with evidence
+    - Contradictions / mixed sentiment
+    - Uncertainty / missing evidence
   expected_output: >
-    A detailed markdown report of business {item_id}'s features, pros, and cons,
-    including: name, city, categories, aggregate stars, review_count, and 3-5
-    recurring themes (with short paraphrased quotes).
+    A markdown item profile that is identity-locked to item_id and usable for
+    evidence-based prediction.
   agent: item_analyst
 
 predict_review_task:
   description: >
-    Using the user profile and the item report produced by the previous tasks,
-    predict the stars (1.0 to 5.0) and write the review text.
-    You MUST base your prediction on the actual data retrieved by the previous
-    agents. Do NOT say the data was not found.
-    Consider whether the restaurant's features align with the user's historical
-    preferences, and use the user's average_stars as the main calibration
-    anchor.
+    Using only the previous user and item analyses, produce exactly one final
+    ReviewPredictionOutput for user_id={user_id}, item_id={item_id}.
+
+    Calibration + grounding rules (mandatory):
+    1) Start from user average_stars as prior; adjust with item evidence.
+    2) Do not predict extreme scores (>=4.5 or <=2.0) without explicit,
+       repeated evidence in prior analyses.
+    3) Every major claim in the review text must map to evidence from
+       analyze_user_task or analyze_item_task.
+    4) Never switch venue identity: if item analysis names business X, do not
+       write about business Y or generic invented details.
+    5) If evidence is weak/contradictory, choose a conservative score near the
+       user's baseline and use hedged language.
+    6) Treat knowledge-source docs as methodology only; never use them as a
+       source of concrete facts (names, dishes, city, service events).
+
+    Final self-check before output:
+    - Stars and tone are consistent.
+    - Mentions match retrieved business attributes/themes.
+    - No invented dish, city, service event, or ambiance claim.
+    - If naming the business, use the exact retrieved business name only.
+
+    Output MUST be a single valid JSON object with keys "stars" and "review"
+    only (no markdown, no preamble, no trailing text).
   expected_output: >
-    Output ONLY a valid JSON object with exactly two keys: "stars" (a float
-    from 1.0 to 5.0) and "review" (a string).
-    Use single curly braces. Example: {"stars": 4.5, "review": "The review text..."}
-    Do NOT include any text before or after the JSON object. Do NOT use double
-    curly braces.
+    A single JSON object with keys "stars" and "review".
   agent: prediction_modeler
-
-# -----------------------------------------------------------------------
-# Pattern 2 — Collaborative specialists (sequential process, shared tasks)
-# -----------------------------------------------------------------------
-#
-# The collab crew reuses the Pattern 1 task lineup verbatim. Collaboration
-# still happens via ``allow_delegation=true`` on every agent (see
-# config/agents.yaml) — an analyst can pause mid-task to ask a peer a
-# focused question — but the final answer is still produced by
-# ``prediction_modeler`` at the end of ``predict_review_task`` so the
-# output schema stays identical across all three crew modes.
-
-# -----------------------------------------------------------------------
-# Pattern 3 — Hierarchical (manager agent orchestrates the same 3 tasks)
-# -----------------------------------------------------------------------
-#
-# Under ``Process.hierarchical`` the manager still coordinates, but we reuse
-# the sequential lineup (analyze_user_task, analyze_item_task,
-# predict_review_task) so the FINAL output is emitted by
-# ``prediction_modeler`` — identical schema and output_file behaviour to the
-# sequential crew. The manager can still side-delegate to eda_researcher /
-# editor / web_researcher via the built-in "Delegate work to coworker" /
-# "Ask question to coworker" tools.
+  context:
+    - analyze_user_task
+    - analyze_item_task
+  output_file: prediction_output.json

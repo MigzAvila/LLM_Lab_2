@@ -40,10 +40,11 @@ NVIDIA_API_BASE=https://integrate.api.nvidia.com/v1
 To fall back to Ollama instead, set `LLM_PROVIDER=ollama` and `MODEL=ollama/<tag>`
 (e.g. `ollama/phi3`). See `.env.example` for the full list of knobs.
 
-- Modify `src/week5lab/config/agents.yaml` to define your agents
-- Modify `src/week5lab/config/tasks.yaml` to define your tasks
-- Modify `src/week5lab/crew.py` to add your own logic, tools and specific args
-- Modify `src/week5lab/main.py` to add custom inputs for your agents and tasks
+- Modify `src/week5lab1/config/agents.yaml` to define your agents
+- Modify `src/week5lab1/config/tasks.yaml` to define your tasks
+- Modify `src/week5lab1/crew.py` to add your own logic, tools and specific args
+- Modify `src/week5lab1/main.py` to add custom inputs for your agents and tasks
+- Modify `src/week5lab1/flow.py` to customize CrewAI Flow orchestration
 
 ## Running the Project
 
@@ -82,6 +83,26 @@ uv run run_crew --crew hierarchical 3
 crewai run --crew collab 3
 ```
 
+### Running via CrewAI Flow (bonus integration)
+
+The project now includes a Flow entrypoint that wraps the same crews and
+persists outputs in the same files (`prediction_output.json` and
+`merge_outputs.json`).
+
+```bash
+uv run run_flow --crew sequential 3
+uv run run_flow --crew collab 3
+uv run run_flow --crew hierarchical 3
+uv run run_flow '{"user_id":"<USER_ID>","item_id":"<ITEM_ID>"}'
+```
+
+Flow behavior:
+
+- Parses `--crew` and row index / JSON payload input
+- Runs the selected crew mode (`sequential`, `collab`, or `hierarchical`)
+- Extracts/normalizes final JSON prediction (`stars`, `review`)
+- Writes `prediction_output.json` and appends to `merge_outputs.json`
+
 You can also set the env var `WEEK5LAB1_CREW_MODE=collab` to change the
 default without passing `--crew`.
 
@@ -89,6 +110,14 @@ All three crews enable **memory** (`memory=True` on the Crew) and
 **collaboration** (`allow_delegation=True` on every agent), and they load
 two knowledge sources: `docs/Yelp Data Translation.md` (schema) and
 `docs/Exploratory Data Analysis.md` (EDA playbook).
+
+Task config note:
+
+- `tasks.yaml` now keeps both task families:
+  - `analyze_user_task` / `analyze_item_task` / `predict_review_task` for the
+    main sequential/collab/hierarchical crew pipelines used in `crew.py`
+  - `prediction_research_task` / `prediction_report_task` for strict
+    research-then-report decomposition experiments
 
 New agents added for the lab (beyond the original three):
 
@@ -136,6 +165,71 @@ On Windows PowerShell, prefer single quotes around the JSON, or escape double qu
 ## Understanding Your Crew
 
 The week5lab Crew is composed of multiple AI agents, each with unique roles, goals, and tools. These agents collaborate on a series of tasks, defined in `config/tasks.yaml`, leveraging their collective skills to achieve complex objectives. The `config/agents.yaml` file outlines the capabilities and configurations of each agent in your crew.
+
+## Project Status (Before vs Now)
+
+### Previous State
+
+- Baseline crew logic existed, but task/agent mappings were not fully aligned
+  after prompt refactors.
+- Pattern coverage was partially present, but runtime wiring caused startup
+  errors in some modes.
+- Grounding controls were weaker, which made hallucinated business details more
+  likely in final predictions.
+- No explicit Flow-oriented status summary in the README.
+
+### New Changes Implemented
+
+This repository now reflects all requested lab deliverables (1-4 + bonus):
+
+1. **Index-Reuse mechanism integration**
+   - Implemented via Chroma collection reuse (`create_rag_tool` +
+     `chroma_collection_exists`) to avoid unnecessary re-indexing.
+
+2. **Crew with `Process.sequential` (Pattern 2 collaborative setup)**
+   - `collab` mode is available and runs with delegation-enabled agents.
+
+3. **Crew with `Process.hierarchical` (manager agent)**
+   - `hierarchical` mode is available with explicit `crew_manager`
+     orchestration.
+
+4. **New/stronger agents**
+   - Added and wired specialist agents including:
+     `eda_researcher`, `web_researcher`, `editor`, and `crew_manager`.
+   - Also included strict research/report specialists for structured pipelines:
+     `prediction_researcher` and `prediction_reporting_analyst`.
+
+**Bonus delivered**
+
+- **New knowledge for agents (EDA):**
+  `docs/Exploratory Data Analysis.md` is integrated as a knowledge source and
+  now includes explicit methodology-only/anti-hallucination guidance.
+- **CrewAI Flow integration:**
+  `src/week5lab1/flow.py` and `run_flow` entrypoint are implemented so the
+  same crews can run through Flow orchestration and persist outputs.
+
+### Future Work (TODO)
+
+- [ ] Upgrade to a stronger model and compare hallucination rate vs current
+      baseline.
+- [ ] Route hierarchical production path through the stricter
+      research-then-report chain by default.
+- [ ] Add automated evaluation metrics (MAE for stars + semantic similarity for
+      review text) across `merge_outputs.json`.
+- [ ] Add regression tests for identity-lock behavior (no wrong business names).
+- [ ] Add retry/guardrail policy when output violates grounding constraints.
+- [ ] Tune prompts per model family (NIM MiniMax vs alternative providers).
+
+## Current Limitation (Model Quality)
+
+With the current model configuration, the crew can still produce occasional
+hallucinated or weakly grounded review details (for example, drifting to an
+incorrect business identity or overly generic positive language).
+
+Given time constraints, the current prompt hardening and grounding checks are
+the best available mitigation in this iteration. A stronger model will likely
+improve faithfulness and calibration, and is the recommended next step when
+time allows.
 
 ## Support
 
