@@ -1,4 +1,4 @@
-# Week5Lab Crew
+# LLM Lab Crew
 
 Simple CrewAI project for predicting Yelp-style ratings and review text.
 
