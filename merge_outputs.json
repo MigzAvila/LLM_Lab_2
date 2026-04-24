@@ -1,0 +1,17 @@
+[
+  {
+    "user_id": "IKbjLnfBQtEyVzEu8CuOLg",
+    "item_id": "mLNSOU8Ki0Fm09xd6ZKkcA",
+    "crew_mode": "hierarchical",
+    "ground_truth": {
+      "stars": 2.0,
+      "review": "ETA: I spoke with Angie, the manager, and she was wonderful. Although the customer service we experienced during our dinner was not great, I feel like Angie heard and validated my frustrations.  She offered me a gift card to return to the restaurant and I look forward to a more positive experience next time.\n\nI have food allergies and came to Timpano thinking they would not have an issue accommodating.  Unfortunately, I found that the majority of their items could not be made without dairy, soy, and nuts.  Our server took our order and returned a LONG while later to tell me they couldn't make the dishes he had told me would be OK.  He suggested I just order a protein and steamed vegetables (which is super boring and not what I want when I go out to eat). We were able to enjoy the mussels, thankfully. We decided to share scallops and broccolini. Our server explained that it typically comes with 3 scallops so he added 1 scallop on so we could each have 2.  Imagine my SHOCK to receive a bill for $45 for 4 scallops and 4 sprigs of broccolini - a $15 charge for 1 scallop (when the only side they could give me was a vegetable).  We were there for over 2 hours (not because we were having a leisurely meal, but because it took them WAY too long...) and didn't want to get into a battle over the bill then.  I have tried to reach out to the restaurant to give them an opportunity to listen to my concerns, but have not received a response.  There are too many good restaurants that care about customer service to return here.",
+      "review_id": "Iz_bZH0FZR97cNCleCauKw",
+      "date": "2019-12-18 02:18:36"
+    },
+    "predicted": {
+      "stars": 4.5,
+      "review": "This Contemporary American spot is a solid choice that delivers on all the things I look for in a dining experience. The farm-to-table focus really shows — every dish felt fresh and carefully prepared with quality ingredients that made a difference in flavor. I appreciated the knowledgeable, attentive staff who made solid recommendations and kept things running smoothly. Generous portions and good value at moderate prices, plus that cozy, rustic-chic ambiance with exposed brick and soft lighting makes it a comfortable spot for any occasion. The innovative cocktails and thoughtful wine list are a nice bonus too. I'll definitely be back and highly recommend giving it a try."
+    }
+  }
+]
