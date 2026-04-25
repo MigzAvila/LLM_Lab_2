@@ -1,11 +1,12 @@
 # LLM Lab Crew
 
-Simple CrewAI project for predicting Yelp-style ratings and review text.
+CrewAI project for predicting Yelp-style star ratings and review text from a `(user_id, item_id)` pair, using RAG over local JSON subsets, optional EDA knowledge, and a dedicated calibration step before the final JSON prediction.
 
 ## Requirements
 
 - Python `>=3.10,<3.14`
 - `uv` installed (`pip install uv`)
+- **Default LLM:** [Ollama](https://ollama.com) with `gemma4:26b` pulled locally (`ollama pull gemma4:26b`)
 
 ## Setup
 
@@ -16,9 +17,25 @@ uv sync
 uv pip install "litellm[proxy]"
 ```
 
-Create `.env` from `.env.example`, then set your provider keys.
+Copy `.env.example` to `.env` and adjust if needed. Defaults target local Ollama:
 
-Default setup uses NVIDIA NIM:
+```bash
+LLM_PROVIDER=ollama
+MODEL=ollama/gemma4:26b
+OLLAMA_API_BASE=http://127.0.0.1:11434
+```
+
+Ensure Ollama is running and the model is available:
+
+```bash
+ollama serve   # if not already running as a service
+ollama pull gemma4:26b
+ollama list
+```
+
+### Optional: NVIDIA NIM instead of Ollama
+
+Set in `.env`:
 
 ```bash
 LLM_PROVIDER=nvidia
@@ -47,13 +64,13 @@ crewai run --user_id "<USER_ID>" --item_id "<ITEM_ID>"
 
 Available modes:
 
-| Mode           | Process                | Pattern                                          |
-|----------------|------------------------|--------------------------------------------------|
-| `sequential`   | `Process.sequential`   | Pattern 1 - Research -> Write -> Edit (default) |
-| `collab`       | `Process.sequential`   | Pattern 2 - Collaborative single task           |
-| `hierarchical` | `Process.hierarchical` | Pattern 3 - Manager decomposes and delegates    |
+| Mode           | Process                 | Pattern |
+|----------------|-------------------------|---------|
+| `sequential`   | `Process.sequential`    | User profile → item profile → **calibration** → final JSON prediction (default) |
+| `collab`       | `Process.sequential`    | Same task chain with delegation enabled across agents |
+| `hierarchical` | `Process.hierarchical`  | Manager orchestrates the same specialists |
 
-Example:
+Examples:
 
 ```bash
 crewai run --crew collab 3
@@ -62,39 +79,51 @@ crewai run --crew hierarchical 3
 
 ### Run with Flow
 
+Same inputs and crew flags; orchestration goes through `src/week5lab1/flow.py`:
+
 ```bash
 uv run run_flow --crew sequential 3
 uv run run_flow --crew collab 3
 uv run run_flow --crew hierarchical 3
 ```
 
+## Pipeline overview
+
+1. **User analyst** — RAG over user and review corpora; profile and numeric anchors.
+2. **Item analyst** — RAG over business and reviews; identity-locked business snapshot.
+3. **Calibrator** — `calibrate_user_task`: prior and adjustment band so the final step does not collapse to generic mid-range stars (inspired by a dedicated calibration agent pattern).
+4. **Prediction modeler** — Single JSON object: `stars` and `review`, grounded in prior tasks.
+
+Optional agents (`eda_researcher`, `web_researcher`, `editor`, `crew_manager`) participate mainly in collaborative and hierarchical modes.
+
 ## Output files
 
 - `prediction_output.json`: latest prediction only
-- `merge_outputs.json`: history of prediction runs
+- `merge_outputs.json`: history of runs (ground truth from the test row when applicable, plus predicted payload and `crew_mode`)
 
 ## Project files to edit
 
-- `src/week5lab1/config/agents.yaml`: agent definitions
-- `src/week5lab1/config/tasks.yaml`: task definitions
-- `src/week5lab1/crew.py`: crew logic
-- `src/week5lab1/main.py`: CLI/input handling
-- `src/week5lab1/flow.py`: flow orchestration
+- `src/week5lab1/config/agents.yaml`: agent definitions (including `calibrator`)
+- `src/week5lab1/config/tasks.yaml`: task definitions (including `calibrate_user_task`)
+- `src/week5lab1/crew.py`: crew factories, LLM selection, RAG tools, knowledge sources
+- `src/week5lab1/main.py`: CLI and merge output handling
+- `src/week5lab1/flow.py`: Flow orchestration for `run_flow`
 
-## Checklist: What Was Implemented
+## Checklist: What was implemented
 
-- [x] Index reuse mechanism to avoid unnecessary re-indexing
-- [x] `collab` crew mode (`Process.sequential`)
-- [x] `hierarchical` crew mode (`Process.hierarchical`)
-- [x] Additional specialized agents (`eda_researcher`, `web_researcher`, `editor`, `crew_manager`)
-- [x] CrewAI Flow integration (`run_flow` + `src/week5lab1/flow.py`)
-- [x] EDA knowledge source integration for better grounding
+- [x] Index reuse (Chroma sqlite probe) to avoid unnecessary re-indexing
+- [x] `collab` and `hierarchical` crew modes
+- [x] Specialized agents: `eda_researcher`, `web_researcher`, `editor`, `crew_manager`
+- [x] **`calibrator` agent** and **`calibrate_user_task`** before final prediction
+- [x] CrewAI Flow (`run_flow` + `flow.py`)
+- [x] EDA + schema string knowledge sources
+- [x] **Default LLM:** Ollama `gemma4:26b` (override via `.env` for NVIDIA or other LiteLLM backends)
 
 ## TODO
 
-- [ ] Upgrade to a stronger model and compare hallucination rate
-- [ ] Route hierarchical default path through stricter research-then-report chain
-- [ ] Add automated evaluation metrics (MAE + review similarity)
-- [ ] Add regression tests for identity-lock behavior
+- [ ] Compare prediction quality: Ollama `gemma4:26b` vs NVIDIA (or other) on the same rows
+- [ ] Route hierarchical default path through a stricter research-then-report chain if needed
+- [ ] Add automated evaluation metrics (MAE + review similarity) over `merge_outputs.json`
+- [ ] Add regression tests for identity-lock and calibration behavior
 - [ ] Add retry/guardrail policy for grounding violations
-- [ ] Tune prompts per model family
+- [ ] Tune prompts per model family (Ollama vs cloud APIs)

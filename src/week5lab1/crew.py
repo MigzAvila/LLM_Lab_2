@@ -69,18 +69,17 @@ from week5lab1.tools.custom_tool import create_rag_tool  # noqa: E402
 # ---------------------------------------------------------------------------
 # LLM selection
 #
-# Default provider is NVIDIA NIM (OpenAI-compatible), driven by ``.env``:
+# Default provider is local Ollama, driven by ``.env``:
 #
-#     LLM_PROVIDER=nvidia
-#     NVIDIA_API_KEY=nvapi-...
-#     NVIDIA_MODEL_NAME=minimaxai/minimax-m2.7
-#     NVIDIA_API_BASE=https://integrate.api.nvidia.com/v1
+#     LLM_PROVIDER=ollama
+#     MODEL=ollama/gemma4:26b
+#     OLLAMA_API_BASE=http://127.0.0.1:11434
 #
-# To fall back to Ollama (or any LiteLLM provider) set ``LLM_PROVIDER=ollama``
-# and ``MODEL=ollama/<tag>`` (e.g. ``ollama/phi3``).
+# To use NVIDIA NIM instead, set ``LLM_PROVIDER=nvidia`` and fill the
+# ``NVIDIA_*`` variables in ``.env``.
 # ---------------------------------------------------------------------------
 
-_LLM_PROVIDER = os.getenv("LLM_PROVIDER", "nvidia").strip().lower()
+_LLM_PROVIDER = os.getenv("LLM_PROVIDER", "ollama").strip().lower()
 
 
 def _build_llm() -> LLM:
@@ -115,8 +114,9 @@ def _build_llm() -> LLM:
         )
 
     # Generic fallback: honour whatever ``MODEL`` says (Ollama, Groq, etc.).
-    model_name = os.getenv("MODEL") or "ollama/phi3"
+    model_name = os.getenv("MODEL") or "ollama/gemma4:26b"
     os.environ.setdefault("MODEL", model_name)
+    os.environ.setdefault("OLLAMA_API_BASE", os.getenv("OLLAMA_API_BASE", "http://127.0.0.1:11434"))
     return LLM(model=model_name)
 
 
@@ -307,6 +307,15 @@ class Week5Lab1:
             verbose=True,
         )
 
+    @agent
+    def calibrator(self) -> Agent:
+        return Agent(
+            config=self.agents_config["calibrator"],  # type: ignore[index]
+            tools=[user_rag_tool, review_rag_tool],
+            llm=CREW_LLM,
+            verbose=True,
+        )
+
     @task
     def analyze_user_task(self) -> Task:
         return Task(config=self.tasks_config["analyze_user_task"])  # type: ignore[index]
@@ -314,6 +323,10 @@ class Week5Lab1:
     @task
     def analyze_item_task(self) -> Task:
         return Task(config=self.tasks_config["analyze_item_task"])  # type: ignore[index]
+
+    @task
+    def calibrate_user_task(self) -> Task:
+        return Task(config=self.tasks_config["calibrate_user_task"])  # type: ignore[index]
 
     @task
     def predict_review_task(self) -> Task:
@@ -441,6 +454,15 @@ class Week5Lab1CollabCrew:
             verbose=True,
         )
 
+    @agent
+    def calibrator(self) -> Agent:
+        return Agent(
+            config=self.agents_config["calibrator"],  # type: ignore[index]
+            tools=[user_rag_tool, review_rag_tool],
+            llm=CREW_LLM,
+            verbose=True,
+        )
+
     # Reuse the sequential task lineup so the final output is emitted by
     # ``prediction_modeler`` via the reliable OpenAI-style tool-call path.
     # Peer collaboration still happens mid-task via ``allow_delegation=True``
@@ -453,6 +475,10 @@ class Week5Lab1CollabCrew:
     @task
     def analyze_item_task(self) -> Task:
         return Task(config=self.tasks_config["analyze_item_task"])  # type: ignore[index]
+
+    @task
+    def calibrate_user_task(self) -> Task:
+        return Task(config=self.tasks_config["calibrate_user_task"])  # type: ignore[index]
 
     @task
     def predict_review_task(self) -> Task:
@@ -564,6 +590,15 @@ class Week5Lab1HierarchicalCrew:
         )
 
     @agent
+    def calibrator(self) -> Agent:
+        return Agent(
+            config=self.agents_config["calibrator"],  # type: ignore[index]
+            tools=[user_rag_tool, review_rag_tool],
+            llm=CREW_LLM,
+            verbose=True,
+        )
+
+    @agent
     def editor(self) -> Agent:
         return Agent(
             config=self.agents_config["editor"],  # type: ignore[index]
@@ -586,6 +621,10 @@ class Week5Lab1HierarchicalCrew:
     @task
     def analyze_item_task(self) -> Task:
         return Task(config=self.tasks_config["analyze_item_task"])  # type: ignore[index]
+
+    @task
+    def calibrate_user_task(self) -> Task:
+        return Task(config=self.tasks_config["calibrate_user_task"])  # type: ignore[index]
 
     @task
     def predict_review_task(self) -> Task:

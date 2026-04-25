@@ -133,6 +133,32 @@ analyze_item_task:
     evidence-based prediction.
   agent: item_analyst
 
+calibrate_user_task:
+  description: >
+    Build a calibration memo for user_id={user_id} that helps the final
+    predictor avoid regression-to-mean.
+
+    Inputs:
+    - The completed user profile from analyze_user_task.
+    - Optional extra evidence from search_historical_reviews_data focused on this
+      user's positive/negative extremes and repeat themes.
+
+    Required output sections:
+    - Baseline prior (user average_stars and confidence level)
+    - Typical deviation range (how far this user usually moves from baseline)
+    - Extreme-case triggers (what conditions justify large upward/downward moves)
+    - Conservative fallback rule (when evidence is sparse/conflicting)
+    - Recommended adjustment band for this request (e.g. -0.5 to +0.5 from prior)
+
+    Rules:
+    - Do NOT output final "stars" or final review text.
+    - Keep recommendations grounded in user-specific evidence, not generic advice.
+  expected_output: >
+    A compact markdown calibration memo with explicit prior and adjustment band.
+  agent: calibrator
+  context:
+    - analyze_user_task
+
 predict_review_task:
   description: >
     Using only the previous user and item analyses, produce exactly one final
@@ -163,6 +189,6 @@ predict_review_task:
     A single JSON object with keys "stars" and "review".
   agent: prediction_modeler
   context:
-    - analyze_user_task
     - analyze_item_task
+    - calibrate_user_task
   output_file: prediction_output.json

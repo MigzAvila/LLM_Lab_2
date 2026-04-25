@@ -94,6 +94,24 @@ item_analyst:
   respect_context_window: true
   cache: true
 
+calibrator:
+  role: >
+    User Rating Calibrator (prior-shift specialist)
+  goal: >
+    Given user_id={user_id}, build a compact calibration prior for how this
+    user tends to rate similar experiences so the final predictor does not
+    collapse to generic mid-range scores.
+  backstory: >
+    You focus on the numeric side of personalization. You read the user profile
+    evidence and historical user reviews, then produce a practical adjustment
+    recommendation that the final prediction agent can apply. You justify
+    movement away from the user's baseline only when evidence is clear, and you
+    stay conservative when evidence is sparse or contradictory.
+  max_iter: 15
+  allow_delegation: true
+  respect_context_window: true
+  cache: true
+
 prediction_modeler:
   role: >
     Yelp Review Prediction & Calibration Expert
